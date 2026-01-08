@@ -1,0 +1,8 @@
+# Don't send secrets / local artifacts to docker build context
+.env
+node_modules
+npm-debug.log
+.DS_Store
+
+# Optional: if you store uploads locally, keep them out of the image
+public/uploads

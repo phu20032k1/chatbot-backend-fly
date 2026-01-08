@@ -1,0 +1,25 @@
+# Fly.io app configuration
+# Docs: https://fly.io/docs/reference/configuration/
+
+app = "chatiip-backend"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  # BASE_URL = "https://chatiip.com"  # set via secrets or keep here if not sensitive
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 50
+    soft_limit = 30

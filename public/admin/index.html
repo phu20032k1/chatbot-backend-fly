@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - ChatIIP CMS</title>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        background: #f3f4f6;
+        color: #111827;
+      }
+
+      /* LOGIN */
+      .login-box {
+        max-width: 420px;
+        margin: 60px auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+      }
+      .login-box h2 {
+        margin: 0 0 12px;
+      }
+      .field {
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 14px;
+      }
+      .field label {
+        font-weight: 600;
+      }
+      input,
+      textarea,
+      select {
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        padding: 8px 10px;
+        font-size: 14px;
+        font-family: inherit;
+        outline: none;
+      }
+      input:focus,
+      textarea:focus,
+      select:focus {
+        border-color: #94a3b8;
+        box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25);
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        font-family: inherit;
+      }
+      .btn-primary {
+        background: #111827;
+        color: #fff;
+      }
+      .btn-secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+      .btn-danger {
+        background: #dc2626;
+        color: #fff;
+      }
+      .btn-link {
+        background: transparent;
+        color: #2563eb;
+        padding: 0;
+        border-radius: 0;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      /* CMS LAYOUT */
+      #cmsView {
+        max-width: 1280px;
+        margin: 20px auto;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+      }
+      .cms-header {
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .cms-header h1 {
+        font-size: 20px;
+        margin: 0;
+      }
+
+      .cms-tabs {
+        padding: 10px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .tab-btn {
+        border: none;
+        background: #e5e7eb;
+        padding: 9px 14px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #374151;
+      }
+      .tab-btn.active {
+        background: #111827;
+        color: #ffffff;
+      }
+
+      .cms-body {
+        padding: 16px 18px 20px;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
+        gap: 16px;
+      }
+
+      .grid-2-wide {
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.3fr);
+        gap: 16px;
+      }
+
+      @media (max-width: 980px) {
+        .grid-2,
+        .grid-2-wide {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* BOX */
+      .box {
+        background: #ffffff;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+      }
+      .box + .box {
+        margin-top: 12px;
+      }
+      .box-header {
+        padding: 10px 12px;
+        background: linear-gradient(90deg, #00a38c, #0090c7);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .box-body {
+        padding: 12px;
+      }
+
+      .muted {
+        color: #6b7280;
+        font-size: 12px;
+      }
+
+      /* LIST */
+      .list {
+        max-height: 520px;
+        overflow-y: auto;
+        padding-right: 6px;
+      }
+      .list::-webkit-scrollbar {
+        width: 8px;
+      }
+      .list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 6px;
+      }
+      .list::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      .item {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        background: #f9fafb;
+        position: relative;
+      }
+      .item-title {
+        font-weight: 700;
+        margin-bottom: 4px;
+        line-height: 1.25;
+      }
+      .item-meta {
+        font-size: 12px;
+        color: #6b7280;
+      }
+      .tag {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #e5e7eb;
+        margin-left: 6px;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .tag.ok {
+        background: rgba(22, 163, 74, 0.15);
+        color: #166534;
+      }
+      .tag.warn {
+        background: rgba(245, 158, 11, 0.15);
+        color: #92400e;
+      }
+      .tag.bad {
+        background: rgba(220, 38, 38, 0.15);
+        color: #991b1b;
+      }
+
+      .actions {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      /* Tooltip preview on hover */
+      .preview-tip {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        top: calc(100% + 6px);
+        background: #111827;
+        color: #fff;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 1.4;
+        display: none;
+        z-index: 20;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+        white-space: pre-wrap;
+      }
+      .item:hover .preview-tip {
+        display: block;
+      }
+
+      /* Toolbar */
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .toolbar input,
+      .toolbar select {
+        min-width: 160px;
+      }
+
+      /* Modal */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        z-index: 999;
+      }
+      .modal {
+        width: min(980px, 100%);
+        max-height: 90vh;
+        overflow: hidden;
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+        display: flex;
+        flex-direction: column;
+      }
+      .modal-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .modal-title {
+        font-weight: 800;
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.3;
+      }
+      .modal-body {
+        padding: 12px 16px 16px;
+        overflow: auto;
+      }
+      .doc-tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 10px 0 12px;
+      }
+      .doc-tab {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #e5e7eb;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .doc-tab.active {
+        background: #111827;
+        color: #fff;
+      }
+      .doc-panel {
+        display: none;
+      }
+      .doc-panel.active {
+        display: block;
+      }
+      .tree ul {
+        margin: 6px 0 6px 18px;
+        padding: 0;
+      }
+      .tree li {
+        margin: 4px 0;
+      }
+
+      #toast {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        background: #16a34a;
+        color: white;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-size: 14px;
+        display: none;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        animation: fadeIn 0.25s ease;
+        z-index: 1000;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- LOGIN -->
+    <div id="loginView" class="login-box">
+      <h2>Đăng nhập Admin</h2>
+      <div class="field">
+        <label>Tài khoản</label>
+        <input type="text" id="loginEmail" placeholder="Nhập email" />
+      </div>
+      <div class="field">
+        <label>Mật khẩu</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" />
+      </div>
+      <button class="btn-primary" id="loginBtn">Đăng nhập</button>
+      <p id="loginMessage" style="color: #dc2626; margin-top: 10px"></p>
+      <p class="muted" style="margin-top: 10px">
+        Gợi ý: Nếu bạn đã đăng nhập, trang sẽ tự vào CMS.
+      </p>
+    </div>
+
+    <!-- CMS MAIN -->
+    <div id="cmsView" class="hidden">
+      <div class="cms-header">
+        <h1>ChatIIP CMS</h1>
+        <div style="display: flex; gap: 10px; align-items: center">
+          <span class="muted" id="sessionInfo"></span>
+          <button class="btn-secondary" id="logoutBtn">Đăng xuất</button>
+        </div>
+      </div>
+
+      <!-- TAB BAR -->
+      <div class="cms-tabs">
+        <button class="tab-btn active" data-tab="news">📰 Tin tức</button>
+        <button class="tab-btn" data-tab="docs">📚 Văn bản pháp luật</button>
+        <button class="tab-btn" data-tab="logs">🕒 Lịch sử chatbot</button>
+      </div>
+
+      <div class="cms-body">
+        <!-- =============== TAB: NEWS =============== -->
+        <div id="tab-news" class="tab-content" style="display: block">
+          <div class="grid-2">
+            <!-- LEFT: FORM -->
+            <div>
+              <div class="box">
+                <div class="box-header">Soạn tin tức</div>
+                <div class="box-body">
+                  <input type="hidden" id="editingNewsId" value="" />
+
+                  <div class="field">
+                    <label>Tiêu đề</label>
+                    <input type="text" id="newsTitle" placeholder="Nhập tiêu đề" />
+                  </div>
+
+                  <div class="field">
+                    <label>Slug (URL)</label>
+                    <input type="text" id="newsSlug" placeholder="vd: cong-dung-mat-ong" />
+                    <div class="muted">Nếu để trống, hệ thống sẽ tự tạo từ tiêu đề.</div>
+                  </div>
+
+                  <div class="field">
+                    <label>Mô tả ngắn</label>
+                    <textarea id="newsSubtitle" rows="2" placeholder="Mô tả ngắn để hiển thị preview"></textarea>
+                  </div>
+
+                  <div class="field">
+                    <label>Ảnh thumbnail (URL)</label>
+                    <input type="text" id="newsImg" placeholder="https://..." />
+                  </div>
+
+                  <div class="field">
+                    <label>Chuyên mục</label>
+                    <input type="text" id="newsCategory" placeholder="vd: Bất động sản" />
+                  </div>
+
+                  <div class="field">
+                    <label>Trạng thái duyệt</label>
+                    <select id="newsApproved">
+                      <option value="true">Đã duyệt</option>
+                      <option value="false">Chưa duyệt</option>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label>Lên lịch đăng</label>
+                    <input type="datetime-local" id="newsScheduledAt" />
+                    <div class="muted">Để trống nếu đăng ngay.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="box">
+                <div class="box-header">Nội dung tin</div>
+                <div class="box-body">
+                  <textarea id="newsContent" rows="12" placeholder="Nội dung (HTML)" ></textarea>
+                </div>
+              </div>
+
+              <div class="box">
+                <div class="box-header">SEO</div>
+                <div class="box-body">
+                  <div class="field">
+                    <label>Meta title</label>
+                    <input type="text" id="newsPageTitle" />
+                  </div>
+                  <div class="field">
+                    <label>Meta description</label>
+                    <textarea id="newsPageDescription" rows="2"></textarea>
+                  </div>
+                  <div class="field">
+                    <label>Meta keywords</label>
+                    <input type="text" id="newsPageKeywords" placeholder="từ khóa 1, từ khóa 2" />
+                  </div>
+                  <div class="field">
+                    <label>OG image</label>
+                    <input type="text" id="newsOgImage" placeholder="https://..." />
+                  </div>
+                  <div class="field">
+                    <label>Canonical</label>
+                    <input type="text" id="newsCanonical" placeholder="https://chatiip.com/article.html?..." />
+                  </div>
+
+                  <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                    <button class="btn-primary" id="newsSaveBtn">Lưu tin</button>
+                    <button class="btn-secondary" id="newsResetBtn">Reset form</button>
+                    <span class="muted" id="newsSaveMessage"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: LIST -->
+            <div>
+              <div class="box">
+                <div class="box-header">
+                  <span>Danh sách tin tức</span>
+                  <button class="btn-secondary" id="newsReloadBtn">Tải lại</button>
+                </div>
+                <div class="box-body">
+                  <div class="toolbar" style="margin-bottom: 10px">
+                    <input type="text" id="newsSearch" placeholder="Tìm theo tiêu đề/slug..." />
+                  </div>
+                  <div id="newsList" class="list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =============== TAB: DOCS =============== -->
+        <div id="tab-docs" class="tab-content" style="display: none">
+          <div class="grid-2-wide">
+            <!-- LEFT: FORM -->
+            <div>
+              <div class="box">
+                <div class="box-header">Upload / Cập nhật văn bản</div>
+                <div class="box-body">
+                  <input type="hidden" id="editingDocId" value="" />
+
+                  <div class="field">
+                    <label>Tiêu đề văn bản</label>
+                    <input type="text" id="docTitle" placeholder="Nhập tiêu đề" />
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+                    <div class="field">
+                      <label>Số hiệu</label>
+                      <input type="text" id="docSoHieu" placeholder="vd: 45/2025/QĐ-TTg" />
+                    </div>
+                    <div class="field">
+                      <label>Loại văn bản</label>
+                      <select id="docLoaiVanBan">
+                        <option value="">-- Chọn --</option>
+                        <option>Quyết định</option>
+                        <option>Nghị định</option>
+                        <option>Thông tư</option>
+                        <option>Nghị quyết</option>
+                        <option>Công văn</option>
+                        <option>Chỉ thị</option>
+                        <option>Khác</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label>Cơ quan ban hành</label>
+                    <input type="text" id="docCoQuan" placeholder="vd: Thủ tướng Chính phủ / UBND TP..." />
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+                    <div class="field">
+                      <label>Mục lớn (Lĩnh vực)</label>
+                      <select id="docCategoryMajor"></select>
+                      <div class="muted">Dùng để phân loại rõ ràng như menu bên trái.</div>
+                    </div>
+                    <div class="field">
+                      <label>Mục con</label>
+                      <input type="text" id="docCategoryMinor" placeholder="vd: Đơn vị hành chính, Thuế TNCN..." />
+                      <div class="muted">Có thể để trống nếu không cần.</div>
+                    </div>
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px">
+                    <div class="field">
+                      <label>Ngày ban hành</label>
+                      <input type="date" id="docNgayBanHanh" />
+                    </div>
+                    <div class="field">
+                      <label>Ngày hiệu lực</label>
+                      <input type="date" id="docNgayHieuLuc" />
+                    </div>
+                    <div class="field">
+                      <label>Ngày hết hiệu lực</label>
+                      <input type="date" id="docNgayHetHieuLuc" />
+                    </div>
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+                    <div class="field">
+                      <label>Tình trạng</label>
+                      <select id="docTinhTrang">
+                        <option>Không xác định</option>
+                        <option>Còn hiệu lực</option>
+                        <option>Hết hiệu lực một phần</option>
+                        <option>Hết hiệu lực</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Tags (phân tách bằng dấu phẩy)</label>
+                      <input type="text" id="docTags" placeholder="vd: thuế, nhà ở công vụ" />
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label>Trích yếu / Mô tả ngắn</label>
+                    <textarea id="docTrichYeu" rows="3" placeholder="Dùng để preview khi di chuột vào" ></textarea>
+                  </div>
+
+                  <div class="field">
+                    <label>File văn bản (PDF/DOCX)</label>
+                    <input type="file" id="docFile" accept=".pdf,.docx,.txt" />
+                    <div class="muted">
+                      Upload hiện đang dùng dạng <b>base64</b> (đơn giản, dễ chạy). PDF scan (ảnh) có thể không trích xuất được nội dung.
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label>Nội dung text (tuỳ chọn)</label>
+                    <textarea id="docTextContent" rows="8" placeholder="Nếu PDF scan không đọc được, bạn có thể dán nội dung text ở đây để hiển thị tab 'Nội dung' và tạo 'Lược đồ'."></textarea>
+                  </div>
+
+                  <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                    <button class="btn-primary" id="docSaveBtn">Lưu văn bản</button>
+                    <button class="btn-secondary" id="docResetBtn">Reset form</button>
+                    <button class="btn-secondary" id="docRegenerateOutlineBtn" title="Tạo lại lược đồ từ textContent">Tạo lại lược đồ</button>
+                    <span class="muted" id="docSaveMessage"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: LIST -->
+            <div>
+              <div class="box">
+                <div class="box-header">
+                  <span>Danh sách văn bản</span>
+                  <button class="btn-secondary" id="docsReloadBtn">Tải lại</button>
+                </div>
+                <div class="box-body">
+                  <div class="toolbar" style="margin-bottom: 10px">
+                    <input type="text" id="docsSearch" placeholder="Tìm theo tiêu đề / số hiệu" />
+                    <select id="docsFilterCategory"></select>
+                    <select id="docsFilterStatus">
+                      <option value="">Tất cả trạng thái</option>
+                      <option>Còn hiệu lực</option>
+                      <option>Hết hiệu lực một phần</option>
+                      <option>Hết hiệu lực</option>
+                      <option>Không xác định</option>
+                    </select>
+                  </div>
+                  <div class="muted" id="docsStats" style="margin-bottom: 10px"></div>
+                  <div id="docsList" class="list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =============== TAB: LOGS =============== -->
+        <div id="tab-logs" class="tab-content" style="display: none">
+          <div class="box">
+            <div class="box-header">
+              <span>Lịch sử người dùng hỏi chatbot</span>
+              <button class="btn-secondary" id="logsReloadBtn">Tải lại</button>
+            </div>
+            <div class="box-body">
+              <div class="toolbar" style="margin-bottom: 10px">
+                <input type="text" id="logsSearch" placeholder="Tìm câu hỏi / câu trả lời..." />
+                <select id="logsLimit">
+                  <option value="30">30</option>
+                  <option value="50" selected>50</option>
+                  <option value="100">100</option>
+                </select>
+              </div>
+              <div id="logsList" class="list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: doc preview -->
+    <div id="docModalBackdrop" class="modal-backdrop">
+      <div class="modal">
+        <div class="modal-header">
+          <div>
+            <h3 id="docModalTitle" class="modal-title">Văn bản</h3>
+            <div id="docModalMeta" class="item-meta"></div>
+          </div>
+          <button class="btn-secondary" id="docModalCloseBtn">Đóng</button>
+        </div>
+        <div class="modal-body">
+          <div class="doc-tabs">
+            <div class="doc-tab active" data-doc-tab="summary">Tóm tắt nội dung</div>
+            <div class="doc-tab" data-doc-tab="content">Nội dung</div>
+            <div class="doc-tab" data-doc-tab="outline">Lược đồ</div>
+            <div class="doc-tab" data-doc-tab="download">Tải về</div>
+          </div>
+
+          <div id="docPanelSummary" class="doc-panel active"></div>
+          <div id="docPanelContent" class="doc-panel"></div>
+          <div id="docPanelOutline" class="doc-panel"></div>
+          <div id="docPanelDownload" class="doc-panel"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast">OK</div>
+
+    <!-- TinyMCE giống Word (chỉ dùng cho tin tức) -->
+    <script
+      src="https://cdn.tiny.cloud/1/f6i907pnlns1vqkv5d2srlmk9pkudtb5nc5lebuy0wg77rku/tinymce/6/tinymce.min.js"
+      referrerpolicy="origin"
+    ></script>
+
+    <script>
+      tinymce.init({
+        selector: "#newsContent",
+        height: 520,
+        plugins: `
+          advlist anchor autolink autosave charmap code codesample directionality
+          emoticons fullscreen help image importcss insertdatetime link lists media
+          preview quickbars searchreplace table visualblocks visualchars wordcount
+        `,
+        toolbar: `
+          undo redo | blocks fontfamily fontsize | bold italic underline strikethrough |
+          forecolor backcolor | alignleft aligncenter alignright alignjustify |
+          lineheight outdent indent | bullist numlist checklist |
+          table tabledelete | image media link | searchreplace | fullscreen preview |
+          emoticons charmap removeformat code
+        `,
+        menubar: "file edit view insert format tools table help",
+        content_style: `
+          body { font-family: Arial, sans-serif; padding: 12px; line-height: 1.65; }
+          img { max-width: 100%; border-radius: 8px; }
+        `
+      });
+    </script>
+
+    <script src="./admin.js"></script>
+  </body>
+</html>
