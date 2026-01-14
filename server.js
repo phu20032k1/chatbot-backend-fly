@@ -21,16 +21,27 @@ app.use(express.json({ limit: "100mb" }));
 app.use(cookieParser());
 
 // CORS (đặt trước routes)
+const defaultOrigins = [
+  "https://chatiip.com",
+  "https://admin.chatiip.com",
+  "http://localhost:3000",
+  "http://127.0.0.1:5500",
+  "http://localhost:5500",
+  "null"
+];
+
+// You can override/extend allowed origins via env:
+// CORS_ORIGINS="https://your-netlify-site.netlify.app,https://another-domain.com"
+const envOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
+
 app.use(
   cors({
-    origin: [
-      "https://chatiip.com",
-      "https://admin.chatiip.com",
-      "http://localhost:3000",
-      "http://127.0.0.1:5500",
-      "http://localhost:5500",
-      "null"
-    ],
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]

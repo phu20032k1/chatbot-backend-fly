@@ -145,7 +145,8 @@ const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 const tabPanels = {
   news: $("tab-news"),
   docs: $("tab-docs"),
-  logs: $("tab-logs")
+  logs: $("tab-logs"),
+  users: $("tab-users")
 };
 
 function setActiveTab(name) {
@@ -158,6 +159,7 @@ function setActiveTab(name) {
   if (name === "news") loadNewsList();
   if (name === "docs") loadDocsList();
   if (name === "logs") loadLogs();
+  if (name === "users") loadUsers();
 }
 
 tabButtons.forEach((b) => b.addEventListener("click", () => setActiveTab(b.dataset.tab)));
@@ -812,6 +814,127 @@ logsSearch.addEventListener("input", () => {
   loadLogs._t = setTimeout(loadLogs, 350);
 });
 logsLimit.addEventListener("change", loadLogs);
+
+// ================================
+// USERS (Account management)
+// ================================
+
+const usersReloadBtn = $("usersReloadBtn");
+const usersSearch = $("usersSearch");
+const usersTbody = $("usersTbody");
+const usersPrev = $("usersPrev");
+const usersNext = $("usersNext");
+const usersPageInfo = $("usersPageInfo");
+const usersStats = $("usersStats");
+
+let _usersPage = 1;
+const _usersLimit = 20;
+
+function fmtBool(b) {
+  return b ? "✅" : "—";
+}
+
+function escapeHtml(s) {
+  return (s || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function loadUsers(page = _usersPage) {
+  if (!usersTbody) return;
+  _usersPage = Math.max(1, Number(page || 1));
+
+  usersTbody.innerHTML = `<tr><td colspan="9" style="padding:10px" class="muted">Đang tải...</td></tr>`;
+  const q = (usersSearch?.value || "").trim();
+  const params = new URLSearchParams();
+  params.set("page", String(_usersPage));
+  params.set("limit", String(_usersLimit));
+  if (q) params.set("q", q);
+
+  try {
+    const [list, stats] = await Promise.all([
+      apiJson(`/auth/admin/users?${params.toString()}`, { method: "GET" }),
+      apiJson(`/auth/admin/stats`, { method: "GET" })
+    ]);
+
+    const items = Array.isArray(list?.users) ? list.users : [];
+    usersStats.textContent = `Tổng user: ${stats.totalUsers} • Verified: ${stats.verifiedUsers} • Disabled: ${stats.disabledUsers}`;
+
+    usersPageInfo.textContent = `Trang ${list.page} / ${Math.max(1, Math.ceil((list.total || 0) / list.limit))}`;
+    usersPrev.disabled = _usersPage <= 1;
+    usersNext.disabled = _usersPage >= Math.ceil((list.total || 0) / list.limit);
+
+    if (!items.length) {
+      usersTbody.innerHTML = `<tr><td colspan="9" style="padding:10px" class="muted">Không có tài khoản.</td></tr>`;
+      return;
+    }
+
+    usersTbody.innerHTML = "";
+    items.forEach((u) => {
+      const tr = document.createElement("tr");
+      tr.style.borderBottom = "1px solid #f1f5f9";
+      tr.innerHTML = `
+        <td style="padding:8px;max-width:240px;word-break:break-word">${escapeHtml(u.email)}</td>
+        <td style="padding:8px;max-width:160px;word-break:break-word">${escapeHtml(u.name || "")}</td>
+        <td style="padding:8px">
+          <select data-action="role" data-id="${u._id}" style="padding:6px 8px;border-radius:8px;border:1px solid #e5e7eb">
+            <option value="user" ${u.role === "user" ? "selected" : ""}>user</option>
+            <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
+          </select>
+        </td>
+        <td style="padding:8px">${fmtBool(u.isVerified)}</td>
+        <td style="padding:8px">
+          <select data-action="status" data-id="${u._id}" style="padding:6px 8px;border-radius:8px;border:1px solid #e5e7eb">
+            <option value="active" ${u.status === "active" ? "selected" : ""}>active</option>
+            <option value="disabled" ${u.status === "disabled" ? "selected" : ""}>disabled</option>
+          </select>
+        </td>
+        <td style="padding:8px">${formatDateVN(u.createdAt)}</td>
+        <td style="padding:8px">${formatDateVN(u.lastLoginAt)}</td>
+        <td style="padding:8px">${Number(u.loginCount || 0)}</td>
+        <td style="padding:8px">
+          <button class="btn-secondary" data-action="save" data-id="${u._id}" type="button">Lưu</button>
+        </td>
+      `;
+      usersTbody.appendChild(tr);
+    });
+  } catch (e) {
+    usersTbody.innerHTML = `<tr><td colspan="9" style="padding:10px" class="muted">Lỗi tải: ${escapeHtml(e.message || "")}</td></tr>`;
+  }
+}
+
+async function saveUserRow(userId) {
+  const roleSel = usersTbody.querySelector(`select[data-action="role"][data-id="${userId}"]`);
+  const statusSel = usersTbody.querySelector(`select[data-action="status"][data-id="${userId}"]`);
+  const role = roleSel ? roleSel.value : undefined;
+  const status = statusSel ? statusSel.value : undefined;
+
+  try {
+    await apiJson(`/auth/admin/users/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify({ role, status })
+    });
+    showToast("Đã cập nhật", true);
+    await loadUsers(_usersPage);
+  } catch (e) {
+    showToast(e.message || "Không cập nhật được", false);
+  }
+}
+
+usersReloadBtn?.addEventListener("click", () => loadUsers(1));
+usersPrev?.addEventListener("click", () => loadUsers(_usersPage - 1));
+usersNext?.addEventListener("click", () => loadUsers(_usersPage + 1));
+
+usersSearch?.addEventListener("input", () => {
+  clearTimeout(loadUsers._t);
+  loadUsers._t = setTimeout(() => loadUsers(1), 350);
+});
+
+usersTbody?.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-action='save']");
+  if (!btn) return;
+  const id = btn.getAttribute("data-id");
+  if (!id) return;
+  saveUserRow(id);
+});
 
 // ================================
 // Boot
