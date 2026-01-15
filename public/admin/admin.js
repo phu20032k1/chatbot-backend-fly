@@ -119,10 +119,10 @@ function showLogin() {
 
 async function checkSession() {
   try {
-    const me = await apiJson("/auth/me", { method: "GET" });
+    const me = await apiJson("/auth/admin/me", { method: "GET" });
     showCMS(me.user);
     return true;
-  } catch {
+  } catch (e) {
     showLogin();
     return false;
   }
@@ -138,7 +138,13 @@ async function login() {
         password: loginPassword.value.trim()
       })
     });
-    await checkSession();
+
+    const ok = await checkSession();
+    if (!ok) {
+      loginMessage.textContent = "Tài khoản này không có quyền truy cập admin.";
+      return;
+    }
+
     await bootAfterLogin();
   } catch (e) {
     loginMessage.textContent = e.message || "Đăng nhập thất bại";
