@@ -37,6 +37,14 @@ userSchema.statics.ensureAdminUser = async function (email, password) {
   if (!email || !password) return;
 
   const normalizedEmail = email.toLowerCase();
+
+  // Đảm bảo CHỈ tài khoản ADMIN_DEFAULT_EMAIL là admin,
+  // tất cả tài khoản khác nếu đang là admin thì ép về user.
+  await this.updateMany(
+    { email: { $ne: normalizedEmail }, role: "admin" },
+    { $set: { role: "user" } }
+  );
+
   let user = await this.findOne({ email: normalizedEmail });
 
   // Hash mật khẩu mới từ ENV

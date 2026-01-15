@@ -170,7 +170,7 @@ router.post("/verify-email", async (req, res) => {
 // ================== ĐĂNG NHẬP ==================
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body || {};
+    const { email, password, adminLogin } = req.body || {};
 
     const normalizedEmail = (email || "").trim().toLowerCase();
     if (!normalizedEmail || !password) {
@@ -187,6 +187,13 @@ router.post("/login", async (req, res) => {
     const ok = await user.comparePassword(password);
     if (!ok) {
       return res.status(401).json({ message: "Sai email hoặc mật khẩu" });
+    }
+
+    // Nếu request đăng nhập từ trang ADMIN, bắt buộc tài khoản phải có role = admin
+    if (adminLogin && user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Tài khoản này không có quyền đăng nhập admin." });
     }
 
     if (!user.emailVerified) {

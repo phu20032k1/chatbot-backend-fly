@@ -135,7 +135,8 @@ async function login() {
       method: "POST",
       body: JSON.stringify({
         email: loginEmail.value.trim(),
-        password: loginPassword.value.trim()
+        password: loginPassword.value.trim(),
+        adminLogin: true
       })
     });
 
