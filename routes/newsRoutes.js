@@ -1,6 +1,7 @@
 const express = require("express");
 const News = require("../models/News");
 const auth = require("../middleware/auth");
+const adminOnly = require("../middleware/adminOnly");
 
 const router = express.Router();
 
@@ -40,7 +41,7 @@ router.get("/:slug", async (req, res) => {
 // ==============================
 // ADMIN: THÊM BÀI VIẾT
 // ==============================
-router.post("/", auth, async (req, res) => {
+router.post("/", auth, adminOnly, async (req, res) => {
   const {
     title, subtitle, slug, img, content,
     pageTitle, pageDescription, pageKeywords,
@@ -89,7 +90,7 @@ router.post("/", auth, async (req, res) => {
 // ==============================
 // ADMIN: SỬA BÀI VIẾT
 // ==============================
-router.put("/:id", auth, async (req, res) => {
+router.put("/:id", auth, adminOnly, async (req, res) => {
   const item = await News.findById(req.params.id);
   if (!item) {
     return res.status(404).json({ message: "Không tìm thấy bài viết" });
@@ -138,7 +139,7 @@ router.put("/:id", auth, async (req, res) => {
 // ==============================
 // ADMIN: XOÁ BÀI
 // ==============================
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, adminOnly, async (req, res) => {
   const item = await News.findById(req.params.id);
   if (!item) {
     return res.status(404).json({ message: "Không tìm thấy bài" });

@@ -5,6 +5,7 @@ const os = require("os");
 const { execFileSync } = require("child_process");
 
 const auth = require("../middleware/auth");
+const adminOnly = require("../middleware/adminOnly");
 const LegalDocument = require("../models/LegalDocument");
 
 const router = express.Router();
@@ -344,7 +345,7 @@ router.get("/:id/download", async (req, res) => {
  *  - fileBase64, fileName, fileMimeType (optional)
  *  - textContent (optional) (dùng nếu file scan không extract được)
  */
-router.post("/", auth, async (req, res) => {
+router.post("/", auth, adminOnly, async (req, res) => {
   try {
     const {
       title,
@@ -424,7 +425,7 @@ router.post("/", auth, async (req, res) => {
  * Sửa văn bản (admin)
  * PUT /api/docs/:id
  */
-router.put("/:id", auth, async (req, res) => {
+router.put("/:id", auth, adminOnly, async (req, res) => {
   try {
     const item = await LegalDocument.findById(req.params.id);
     if (!item) return res.status(404).json({ message: "Không tìm thấy văn bản" });
@@ -507,7 +508,7 @@ router.put("/:id", auth, async (req, res) => {
 /**
  * Xóa văn bản (admin)
  */
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, adminOnly, async (req, res) => {
   try {
     const item = await LegalDocument.findById(req.params.id);
     if (!item) return res.status(404).json({ message: "Không tìm thấy văn bản" });

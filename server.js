@@ -111,7 +111,7 @@ mongoose
   .then(async () => {
     console.log("✔ MongoDB connected");
 
-    await User.createAdminIfNotExists(
+    await User.ensureAdminUser(
       process.env.ADMIN_DEFAULT_EMAIL,
       process.env.ADMIN_DEFAULT_PASSWORD
     );

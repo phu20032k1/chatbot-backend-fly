@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
 const auth = require("../middleware/auth");
+const adminOnly = require("../middleware/adminOnly");
 const sendMail = require("../utils/sendMail");
 
 const router = express.Router();
@@ -336,6 +337,20 @@ router.get("/me", auth, async (req, res) => {
     res.json({ user: toPublicUser(user) });
   } catch (err) {
     console.error("Me error:", err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
+// ================== LẤY THÔNG TIN ADMIN (ME) ==================
+router.get("/admin/me", auth, adminOnly, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy tài khoản." });
+    }
+    res.json({ user: toPublicUser(user) });
+  } catch (err) {
+    console.error("Admin me error:", err);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
