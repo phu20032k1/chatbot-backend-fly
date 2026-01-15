@@ -408,7 +408,7 @@
         <button class="tab-btn active" data-tab="news">📰 Tin tức</button>
         <button class="tab-btn" data-tab="docs">📚 Văn bản pháp luật</button>
         <button class="tab-btn" data-tab="logs">🕒 Lịch sử chatbot</button>
-        <button class="tab-btn" data-tab="users">👤 Tài khoản</button>
+        <button class="tab-btn" data-tab="users">👤 Người dùng</button>
       </div>
 
       <div class="cms-body">
@@ -522,6 +522,44 @@
           </div>
         </div>
 
+
+        <!-- =============== TAB: USERS =============== -->
+        <div id="tab-users" class="tab-content" style="display: none">
+          <div class="grid-2">
+            <div>
+              <div class="box">
+                <div class="box-header">
+                  <span>Người dùng (đăng ký / đăng nhập)</span>
+                  <button class="btn-secondary" id="usersReloadBtn">Tải lại</button>
+                </div>
+                <div class="box-body">
+                  <div class="toolbar" style="margin-bottom: 10px">
+                    <input type="text" id="usersSearch" placeholder="Tìm theo tên hoặc email..." />
+                    <select id="usersRoleFilter" style="margin-left:8px">
+                      <option value="">Tất cả vai trò</option>
+                      <option value="admin">Admin</option>
+                      <option value="user">User</option>
+                    </select>
+                  </div>
+                  <div id="usersList" class="list"></div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="box">
+                <div class="box-header">Chi tiết / Gợi ý</div>
+                <div class="box-body">
+                  <p class="muted">
+                    Danh sách hiển thị <b>ngày tạo tài khoản</b> và <b>lần đăng nhập gần nhất</b> (lastLoginAt).
+                  </p>
+                  <p class="muted">
+                    Nếu bạn muốn xem thêm thống kê nâng cao, có thể mở rộng backend để lưu log đăng nhập chi tiết.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- =============== TAB: DOCS =============== -->
         <div id="tab-docs" class="tab-content" style="display: none">
           <div class="grid-2-wide">
@@ -678,57 +716,6 @@
                 </select>
               </div>
               <div id="logsList" class="list"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="tab-users" class="tab-content" style="display: none">
-          <div class="grid-2">
-            <div class="box">
-              <div class="box-header">
-                <span>Danh sách tài khoản</span>
-                <div style="display:flex;gap:8px;align-items:center">
-                  <input id="usersSearch" placeholder="Tìm theo email/tên..." style="width:220px" />
-                  <button id="usersReloadBtn" class="btn-secondary" type="button">Tải lại</button>
-                </div>
-              </div>
-              <div class="box-body">
-                <div class="muted" id="usersStats">...</div>
-                <div style="height:10px"></div>
-                <div class="list">
-                  <table style="width:100%;border-collapse:collapse;font-size:13px">
-                    <thead>
-                      <tr style="text-align:left;border-bottom:1px solid #e5e7eb">
-                        <th style="padding:8px">Email</th>
-                        <th style="padding:8px">Tên</th>
-                        <th style="padding:8px">Role</th>
-                        <th style="padding:8px">Verified</th>
-                        <th style="padding:8px">Trạng thái</th>
-                        <th style="padding:8px">Tạo</th>
-                        <th style="padding:8px">Lần login</th>
-                        <th style="padding:8px">Số lần</th>
-                        <th style="padding:8px">Hành động</th>
-                      </tr>
-                    </thead>
-                    <tbody id="usersTbody"></tbody>
-                  </table>
-                </div>
-                <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
-                  <button id="usersPrev" class="btn-secondary" type="button">Trang trước</button>
-                  <div class="muted" id="usersPageInfo">Trang 1</div>
-                  <button id="usersNext" class="btn-secondary" type="button">Trang sau</button>
-                </div>
-              </div>
-            </div>
-            <div class="box">
-              <div class="box-header"><span>Ghi chú</span></div>
-              <div class="box-body">
-                <div class="muted">
-                  - Chỉ admin đăng nhập mới xem được tab này.<br/>
-                  - Bạn có thể khóa (disabled) tài khoản người dùng để chặn đăng nhập.<br/>
-                  - Người dùng phải xác minh email (OTP) trước khi đăng nhập.
-                </div>
-              </div>
             </div>
           </div>
         </div>

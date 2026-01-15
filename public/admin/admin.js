@@ -3,7 +3,10 @@
 // ================================
 
 // Dùng local khi chạy trên localhost, còn lại dùng cùng domain (admin.chatiip.com)
-const API_BASE = window.location.hostname === "localhost" ? "http://localhost:4000/api" : "/api";
+const API_BASE =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:8080/api"
+    : "/api";
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,6 +30,19 @@ function formatDateVN(dateLike) {
   const yyyy = d.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 }
+
+function formatDateTimeVN(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "N/A";
+  return d.toLocaleString("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 
 function stripHtml(html) {
   const div = document.createElement("div");
@@ -815,126 +831,158 @@ logsSearch.addEventListener("input", () => {
 });
 logsLimit.addEventListener("change", loadLogs);
 
+
 // ================================
-// USERS (Account management)
+// USERS MANAGEMENT
 // ================================
 
-const usersReloadBtn = $("usersReloadBtn");
-const usersSearch = $("usersSearch");
-const usersTbody = $("usersTbody");
-const usersPrev = $("usersPrev");
-const usersNext = $("usersNext");
-const usersPageInfo = $("usersPageInfo");
-const usersStats = $("usersStats");
+const usersList = document.getElementById("usersList");
+const usersSearch = document.getElementById("usersSearch");
+const usersRoleFilter = document.getElementById("usersRoleFilter");
+const usersReloadBtn = document.getElementById("usersReloadBtn");
 
-let _usersPage = 1;
-const _usersLimit = 20;
+async function loadUsers() {
+  if (!usersList) return;
+  usersList.innerHTML = '<div class="muted">Đang tải danh sách người dùng...</div>';
 
-function fmtBool(b) {
-  return b ? "✅" : "—";
-}
-
-function escapeHtml(s) {
-  return (s || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-async function loadUsers(page = _usersPage) {
-  if (!usersTbody) return;
-  _usersPage = Math.max(1, Number(page || 1));
-
-  usersTbody.innerHTML = `<tr><td colspan="9" style="padding:10px" class="muted">Đang tải...</td></tr>`;
-  const q = (usersSearch?.value || "").trim();
-  const params = new URLSearchParams();
-  params.set("page", String(_usersPage));
-  params.set("limit", String(_usersLimit));
-  if (q) params.set("q", q);
+  const q = (usersSearch?.value || "").trim().toLowerCase();
+  const role = usersRoleFilter?.value || "";
 
   try {
-    const [list, stats] = await Promise.all([
-      apiJson(`/auth/admin/users?${params.toString()}`, { method: "GET" }),
-      apiJson(`/auth/admin/stats`, { method: "GET" })
-    ]);
+    const data = await apiJson("/auth/users", { method: "GET" });
+    let list = Array.isArray(data.users) ? data.users : [];
 
-    const items = Array.isArray(list?.users) ? list.users : [];
-    usersStats.textContent = `Tổng user: ${stats.totalUsers} • Verified: ${stats.verifiedUsers} • Disabled: ${stats.disabledUsers}`;
+    if (q) {
+      list = list.filter((u) => {
+        const name = (u.name || "").toLowerCase();
+        const email = (u.email || "").toLowerCase();
+        return name.includes(q) || email.includes(q);
+      });
+    }
 
-    usersPageInfo.textContent = `Trang ${list.page} / ${Math.max(1, Math.ceil((list.total || 0) / list.limit))}`;
-    usersPrev.disabled = _usersPage <= 1;
-    usersNext.disabled = _usersPage >= Math.ceil((list.total || 0) / list.limit);
+    if (role) {
+      list = list.filter((u) => u.role === role);
+    }
 
-    if (!items.length) {
-      usersTbody.innerHTML = `<tr><td colspan="9" style="padding:10px" class="muted">Không có tài khoản.</td></tr>`;
+    if (!list.length) {
+      usersList.innerHTML = '<div class="muted">Không có người dùng phù hợp.</div>';
       return;
     }
 
-    usersTbody.innerHTML = "";
-    items.forEach((u) => {
-      const tr = document.createElement("tr");
-      tr.style.borderBottom = "1px solid #f1f5f9";
-      tr.innerHTML = `
-        <td style="padding:8px;max-width:240px;word-break:break-word">${escapeHtml(u.email)}</td>
-        <td style="padding:8px;max-width:160px;word-break:break-word">${escapeHtml(u.name || "")}</td>
-        <td style="padding:8px">
-          <select data-action="role" data-id="${u._id}" style="padding:6px 8px;border-radius:8px;border:1px solid #e5e7eb">
-            <option value="user" ${u.role === "user" ? "selected" : ""}>user</option>
-            <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
-          </select>
-        </td>
-        <td style="padding:8px">${fmtBool(u.isVerified)}</td>
-        <td style="padding:8px">
-          <select data-action="status" data-id="${u._id}" style="padding:6px 8px;border-radius:8px;border:1px solid #e5e7eb">
-            <option value="active" ${u.status === "active" ? "selected" : ""}>active</option>
-            <option value="disabled" ${u.status === "disabled" ? "selected" : ""}>disabled</option>
-          </select>
-        </td>
-        <td style="padding:8px">${formatDateVN(u.createdAt)}</td>
-        <td style="padding:8px">${formatDateVN(u.lastLoginAt)}</td>
-        <td style="padding:8px">${Number(u.loginCount || 0)}</td>
-        <td style="padding:8px">
-          <button class="btn-secondary" data-action="save" data-id="${u._id}" type="button">Lưu</button>
-        </td>
-      `;
-      usersTbody.appendChild(tr);
+    const itemsHtml = list
+      .map((u) => {
+        const createdAt = u.createdAt ? formatDateTimeVN(u.createdAt) : "N/A";
+        const lastLoginAt = u.lastLoginAt ? formatDateTimeVN(u.lastLoginAt) : "Chưa đăng nhập";
+
+        return `
+          <div class="item">
+            <div class="item-main">
+              <div>
+                <div class="item-title">${u.name || "(Không tên)"} <span class="badge">${u.role || "user"}</span></div>
+                  <div class="item-meta">
+  Email: ${u.email}<br>
+  SĐT: ${u.phone || "(Chưa có)"}
+</div>
+
+              </div>
+              <div class="item-meta" style="text-align:right">
+                <div>Đăng ký: <b>${createdAt}</b></div>
+                <div>Lần đăng nhập cuối: <b>${lastLoginAt}</b></div>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-secondary" data-action="reset-user" data-id="${u._id}" data-email="${u.email}">Reset mật khẩu</button>
+              <button class="btn-danger" data-action="delete-user" data-id="${u._id}" data-email="${u.email}">Xóa tài khoản</button>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    usersList.innerHTML = itemsHtml;
+
+    // Gán sự kiện cho nút reset / xóa tài khoản
+    const deleteButtons = usersList.querySelectorAll("[data-action='delete-user']");
+    deleteButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        const email = btn.getAttribute("data-email") || "";
+        handleDeleteUser(id, email);
+      });
+    });
+
+    const resetButtons = usersList.querySelectorAll("[data-action='reset-user']");
+    resetButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        const email = btn.getAttribute("data-email") || "";
+        handleResetUser(id, email);
+      });
     });
   } catch (e) {
-    usersTbody.innerHTML = `<tr><td colspan="9" style="padding:10px" class="muted">Lỗi tải: ${escapeHtml(e.message || "")}</td></tr>`;
+    console.error("Load users error:", e);
+    usersList.innerHTML = `<div class="muted">Lỗi tải danh sách: ${e.message}</div>`;
   }
 }
 
-async function saveUserRow(userId) {
-  const roleSel = usersTbody.querySelector(`select[data-action="role"][data-id="${userId}"]`);
-  const statusSel = usersTbody.querySelector(`select[data-action="status"][data-id="${userId}"]`);
-  const role = roleSel ? roleSel.value : undefined;
-  const status = statusSel ? statusSel.value : undefined;
 
-  try {
-    await apiJson(`/auth/admin/users/${userId}`, {
-      method: "PUT",
-      body: JSON.stringify({ role, status })
-    });
-    showToast("Đã cập nhật", true);
-    await loadUsers(_usersPage);
-  } catch (e) {
-    showToast(e.message || "Không cập nhật được", false);
-  }
-}
-
-usersReloadBtn?.addEventListener("click", () => loadUsers(1));
-usersPrev?.addEventListener("click", () => loadUsers(_usersPage - 1));
-usersNext?.addEventListener("click", () => loadUsers(_usersPage + 1));
-
-usersSearch?.addEventListener("input", () => {
-  clearTimeout(loadUsers._t);
-  loadUsers._t = setTimeout(() => loadUsers(1), 350);
-});
-
-usersTbody?.addEventListener("click", (e) => {
-  const btn = e.target.closest("button[data-action='save']");
-  if (!btn) return;
-  const id = btn.getAttribute("data-id");
+async function handleDeleteUser(id, email) {
   if (!id) return;
-  saveUserRow(id);
-});
+  const label = email || id;
+  if (!window.confirm(`Bạn chắc chắn muốn xóa tài khoản: ${label}?`)) {
+    return;
+  }
+  try {
+    await apiJson(`/auth/users/${id}`, { method: "DELETE" });
+    showToast("Đã xóa tài khoản.", true);
+    loadUsers();
+  } catch (e) {
+    console.error("Delete user error:", e);
+    showToast(e.message || "Không thể xóa tài khoản.", false);
+  }
+}
+
+async function handleResetUser(id, email) {
+  if (!id) return;
+  const label = email || id;
+  if (
+    !window.confirm(
+      `Reset mật khẩu cho tài khoản: ${label}?\nMật khẩu tạm thời sẽ được hiển thị để bạn gửi cho người dùng.`
+    )
+  ) {
+    return;
+  }
+  try {
+    const data = await apiJson(`/auth/users/${id}/reset-password`, {
+      method: "POST"
+    });
+    const temp = data && data.tempPassword;
+    showToast("Đã reset mật khẩu tài khoản.", true);
+    if (temp) {
+      window.prompt(
+        "Mật khẩu tạm thời (hãy copy gửi cho người dùng):",
+        temp
+      );
+    }
+  } catch (e) {
+    console.error("Reset user error:", e);
+    showToast(e.message || "Không thể reset tài khoản.", false);
+  }
+}
+
+
+if (usersReloadBtn) {
+  usersReloadBtn.addEventListener("click", loadUsers);
+}
+if (usersSearch) {
+  usersSearch.addEventListener("input", () => {
+    clearTimeout(loadUsers._t);
+    loadUsers._t = setTimeout(loadUsers, 350);
+  });
+}
+if (usersRoleFilter) {
+  usersRoleFilter.addEventListener("change", loadUsers);
+}
 
 // ================================
 // Boot
