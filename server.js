@@ -14,18 +14,10 @@ const app = express();
 // Giúp Express lấy đúng req.ip / x-forwarded-for, và cookie secure hoạt động đúng nếu bạn dùng.
 app.set("trust proxy", 1);
 
-// JSON / form bodies
-// Cost & stability: keep the global limits small.
-// IMPORTANT: skip /api/docs here because docs endpoints can accept large payloads.
-// Docs will have their own parser mounted specifically on /api/docs below.
-app.use((req, res, next) => {
-  if (req.originalUrl && req.originalUrl.startsWith("/api/docs")) return next();
-  return express.json({ limit: "5mb" })(req, res, next);
-});
-app.use((req, res, next) => {
-  if (req.originalUrl && req.originalUrl.startsWith("/api/docs")) return next();
-  return express.urlencoded({ extended: true, limit: "5mb" })(req, res, next);
-});
+// JSON body
+// - tăng limit để admin có thể upload file dạng base64 (không dùng multipart)
+// - nếu bạn muốn giới hạn chặt hơn, có thể tách riêng endpoint upload.
+app.use(express.json({ limit: "100mb" }));
 app.use(cookieParser());
 
 // CORS (đặt trước routes)
@@ -77,13 +69,7 @@ const documentRoutes = require("./routes/documentRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/news", newsRoutes);
-// Larger body limit only for docs (supports legacy base64 upload). Prefer multipart.
-app.use(
-  "/api/docs",
-  express.json({ limit: "100mb" }),
-  express.urlencoded({ extended: true, limit: "100mb" }),
-  documentRoutes
-);
+app.use("/api/docs", documentRoutes);
 const News = require("./models/News");
 
 // SITEMAP.XML

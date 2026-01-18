@@ -11,8 +11,10 @@ RUN apt-get update \
 WORKDIR /app
 
 # Install deps first (better build cache)
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+# We use `npm install` instead of `npm ci` to avoid failing when a lockfile is missing
+# or out of date on different machines.
+COPY package.json ./
+RUN npm install --omit=dev
 
 # App source
 COPY . .

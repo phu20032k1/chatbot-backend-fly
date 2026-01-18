@@ -3,7 +3,6 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const { execFileSync } = require("child_process");
-const multer = require("multer");
 
 const auth = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
@@ -76,36 +75,6 @@ function guessExt(originalName, mimeType) {
 const UPLOAD_DIR = path.join(__dirname, "..", "public", "uploads", "docs");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-// Prefer multipart upload (multer diskStorage) to reduce RAM usage compared to base64-in-JSON.
-// Field name expected: "file"
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-    filename: (req, file, cb) => {
-      const ext = guessExt(file.originalname, file.mimetype);
-      const filename = `${Date.now()}-${Math.random().toString(16).slice(2)}${ext}`;
-      cb(null, filename);
-    }
-  }),
-  limits: {
-    fileSize: 50 * 1024 * 1024 // 50MB
-  }
-});
-
-function multerFileToSavedFile(file) {
-  if (!file) return null;
-  const filename = file.filename || path.basename(file.path || "");
-  if (!filename) return null;
-  return {
-    originalName: file.originalname || filename,
-    mimeType: file.mimetype || "application/octet-stream",
-    size: file.size || 0,
-    storagePath: path.join("public", "uploads", "docs", filename),
-    publicUrl: `/uploads/docs/${filename}`,
-    absPath: file.path
-  };
-}
-
 function saveBase64ToFile({ base64, originalName, mimeType }) {
   const cleanB64 = dataUrlToBase64(base64);
   if (!cleanB64) return null;
@@ -139,7 +108,7 @@ function tryExtractTextFromFile(absPath, mimeType, originalName) {
     // PDF → pdftotext
     if (mimeType === "application/pdf" || (originalName || "").toLowerCase().endsWith(".pdf")) {
       const tmpTxt = path.join(os.tmpdir(), `pdftotext-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`);
-      execFileSync("pdftotext", ["-layout", absPath, tmpTxt], { stdio: "ignore", timeout: 60_000 });
+      execFileSync("pdftotext", ["-layout", absPath, tmpTxt], { stdio: "ignore" });
       const text = fs.readFileSync(tmpTxt, "utf8");
       try {
         fs.unlinkSync(tmpTxt);
@@ -155,7 +124,7 @@ function tryExtractTextFromFile(absPath, mimeType, originalName) {
       (originalName || "").toLowerCase().endsWith(".docx")
     ) {
       const tmpTxt = path.join(os.tmpdir(), `pandoc-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`);
-      execFileSync("pandoc", [absPath, "-t", "plain", "-o", tmpTxt], { stdio: "ignore", timeout: 60_000 });
+      execFileSync("pandoc", [absPath, "-t", "plain", "-o", tmpTxt], { stdio: "ignore" });
       const text = fs.readFileSync(tmpTxt, "utf8");
       try {
         fs.unlinkSync(tmpTxt);
@@ -376,7 +345,7 @@ router.get("/:id/download", async (req, res) => {
  *  - fileBase64, fileName, fileMimeType (optional)
  *  - textContent (optional) (dùng nếu file scan không extract được)
  */
-router.post("/", auth, adminOnly, upload.single("file"), async (req, res) => {
+router.post("/", auth, adminOnly, async (req, res) => {
   try {
     const {
       title,
@@ -405,21 +374,7 @@ router.post("/", auth, adminOnly, upload.single("file"), async (req, res) => {
     let file = null;
     let extractedText = "";
 
-    // Prefer multipart file upload (field: "file").
-    if (req.file) {
-      const saved = multerFileToSavedFile(req.file);
-      if (saved) {
-        file = {
-          originalName: saved.originalName,
-          mimeType: saved.mimeType,
-          size: saved.size,
-          storagePath: saved.storagePath,
-          publicUrl: saved.publicUrl
-        };
-        extractedText = tryExtractTextFromFile(saved.absPath, saved.mimeType, saved.originalName);
-      }
-    } else if (fileBase64) {
-      // Legacy base64-in-JSON (kept for backward compatibility)
+    if (fileBase64) {
       const saved = saveBase64ToFile({ base64: fileBase64, originalName: fileName, mimeType: fileMimeType });
       if (saved) {
         file = {
@@ -470,7 +425,7 @@ router.post("/", auth, adminOnly, upload.single("file"), async (req, res) => {
  * Sửa văn bản (admin)
  * PUT /api/docs/:id
  */
-router.put("/:id", auth, adminOnly, upload.single("file"), async (req, res) => {
+router.put("/:id", auth, adminOnly, async (req, res) => {
   try {
     const item = await LegalDocument.findById(req.params.id);
     if (!item) return res.status(404).json({ message: "Không tìm thấy văn bản" });
@@ -508,28 +463,8 @@ router.put("/:id", auth, adminOnly, upload.single("file"), async (req, res) => {
     if (trichYeu !== undefined) item.trichYeu = String(trichYeu).trim();
     if (tags !== undefined) item.tags = normalizeTags(tags);
 
-    // replace file (prefer multipart field: "file")
-    if (req.file) {
-      // delete old
-      if (item.file && item.file.storagePath) deleteIfExists(item.file.storagePath);
-
-      const saved = multerFileToSavedFile(req.file);
-      if (saved) {
-        item.file = {
-          originalName: saved.originalName,
-          mimeType: saved.mimeType,
-          size: saved.size,
-          storagePath: saved.storagePath,
-          publicUrl: saved.publicUrl
-        };
-
-        const extractedText = tryExtractTextFromFile(saved.absPath, saved.mimeType, saved.originalName);
-        if (!textContentInput) {
-          item.textContent = (extractedText || "").trim();
-        }
-      }
-    } else if (fileBase64) {
-      // Legacy base64-in-JSON (kept for backward compatibility)
+    // replace file
+    if (fileBase64) {
       // delete old
       if (item.file && item.file.storagePath) deleteIfExists(item.file.storagePath);
 
@@ -554,7 +489,7 @@ router.put("/:id", auth, adminOnly, upload.single("file"), async (req, res) => {
       item.textContent = String(textContentInput || "").trim();
     }
 
-    if (regenerateOutline === true || regenerateOutline === "true" || req.file || fileBase64 || textContentInput !== undefined) {
+    if (regenerateOutline === true || regenerateOutline === "true" || fileBase64 || textContentInput !== undefined) {
       item.outline = buildOutlineFromText(item.textContent);
     }
 

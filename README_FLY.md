@@ -36,22 +36,6 @@ flyctl secrets set \
 flyctl deploy
 ```
 
-## 4.1) Giảm chi phí (quan trọng)
-Trong `fly.toml` đã được tối ưu để:
-- `min_machines_running = 0` (scale-to-zero khi idle)
-- VM nhỏ: `shared-cpu-1x` + `256mb`
-
-Bạn có thể kiểm tra cấu hình hiện tại bằng:
-```bash
-flyctl status
-flyctl scale show
-```
-
-Nếu bạn gặp lỗi thiếu RAM khi xử lý PDF/DOCX (OOM / restart), tăng RAM lên 512mb:
-```bash
-flyctl scale vm shared-cpu-1x --memory 512
-```
-
 ## 5) Domain và /admin/
 ### Cách đơn giản (backend có domain riêng)
 - Trỏ `admin.chatiip.com` về Fly app.
@@ -67,10 +51,3 @@ flyctl scale vm shared-cpu-1x --memory 512
 App đang lưu file vào `public/uploads/...`.
 - Trên Fly, filesystem **không bền vững** giữa lần deploy/restart.
 - Nếu cần giữ file upload lâu dài: dùng **Fly Volume** hoặc chuyển qua S3/R2.
-
-### Upload tài liệu (khuyến nghị)
-Để giảm RAM và ổn định hơn, backend hỗ trợ **multipart/form-data** với field `file`.
-- Route vẫn là `POST /api/docs` (admin)
-- Các field metadata gửi như bình thường trong form-data
-
-Backend vẫn giữ tương thích ngược với cách cũ (gửi `fileBase64` trong JSON), nhưng cách đó sẽ tốn RAM hơn.
