@@ -61,6 +61,11 @@ app.use("/admin", express.static(path.join(__dirname, "public/admin"), { redirec
 // Public uploads (PDF, ...)
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads"), { fallthrough: true }));
 
+// Quan trọng: trả về file admin khi truy cập /admin
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/admin", "index.html"));
+});
+
 
 // ⭐ API
 const authRoutes = require("./routes/authRoutes");
