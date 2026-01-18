@@ -1,7 +1,5 @@
 const mongoose = require("mongoose");
-// Use bcryptjs (pure JS) to avoid native build failures on Windows during `npm install`.
-// This makes local development and CI more reliable while remaining compatible with existing bcrypt hashes.
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 
 const userSchema = new mongoose.Schema(
   {

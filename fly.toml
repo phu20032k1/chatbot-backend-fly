@@ -16,8 +16,7 @@ primary_region = "sin"
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  # Cost optimization: allow scale-to-zero when idle.
-  # This may introduce a short cold-start on the first request after idling.
+  # Cost optimization: allow Fly to scale-to-zero when idle
   min_machines_running = 0
   processes = ["app"]
 
@@ -26,16 +25,9 @@ primary_region = "sin"
     hard_limit = 50
     soft_limit = 30
 
+# Keep VM small to reduce cost. If you see OOM during PDF/DOCX extraction,
+# increase to 512mb (or 1024mb for very large documents).
 [vm]
   cpu_kind = "shared"
   cpus = 1
-  # Keep memory low to avoid "Additional RAM" charges.
-  # If you process large documents frequently and hit OOM, bump to 512mb.
-  memory = "256mb"
-
-[vm]
-  cpu_kind = "shared"
-  cpus = 1
-  # Keep memory small to avoid "Additional RAM" charges.
-  # If you process large PDFs/DOCX frequently and see OOM, raise to 512mb.
   memory = "256mb"
