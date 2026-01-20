@@ -5,8 +5,14 @@ const User = require("../models/User");
 const auth = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
 const sendMail = require("../utils/sendMail");
+const { OAuth2Client } = require("google-auth-library");
 
 const router = express.Router();
+
+// Google Sign-In (ID token)
+// Frontend dùng Google Identity Services lấy `credential` rồi POST lên /api/auth/google.
+// Yêu cầu ENV: GOOGLE_CLIENT_ID
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -215,6 +221,98 @@ router.post("/login", async (req, res) => {
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
+// ================== ĐĂNG NHẬP BẰNG GOOGLE (ID TOKEN) ==================
+// Frontend lấy `credential` từ Google Identity Services, rồi POST lên endpoint này.
+// Body: { credential: string }
+router.post("/google", async (req, res) => {
+  try {
+    const { credential } = req.body || {};
+    if (!credential) {
+      return res.status(400).json({ message: "Thiếu Google credential." });
+    }
+
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.status(500).json({
+        message: "Server chưa cấu hình GOOGLE_CLIENT_ID." 
+      });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload() || {};
+    const email = String(payload.email || "").trim().toLowerCase();
+    const emailVerified = !!payload.email_verified;
+    const name = String(payload.name || "").trim();
+    const picture = String(payload.picture || "").trim();
+    const sub = String(payload.sub || "").trim();
+
+    if (!email) {
+      return res.status(400).json({ message: "Google token không có email." });
+    }
+
+    // Tìm theo email là chính (tránh tạo trùng). Nếu user đã tồn tại,
+    // thì gắn thêm provider/googleSub khi phù hợp.
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // tạo user mới
+      const randomPassword = generateTempPassword(18);
+      const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+      user = await User.create({
+        name: name || "Google User",
+        email,
+        passwordHash,
+        provider: "google",
+        googleSub: sub || undefined,
+        avatarUrl: picture || undefined,
+        emailVerified: emailVerified
+      });
+    } else {
+      let changed = false;
+
+      // Nếu account này là local, vẫn cho login bằng Google nếu trùng email.
+      // Gắn provider/googleSub để lần sau nhận diện.
+      if (!user.provider) {
+        user.provider = "local";
+        changed = true;
+      }
+      if (sub && !user.googleSub) {
+        user.googleSub = sub;
+        changed = true;
+      }
+      if (picture && !user.avatarUrl) {
+        user.avatarUrl = picture;
+        changed = true;
+      }
+      if (emailVerified && !user.emailVerified) {
+        user.emailVerified = true;
+        user.emailVerifyCode = undefined;
+        user.emailVerifyExpires = undefined;
+        changed = true;
+      }
+      user.lastLoginAt = new Date();
+      changed = true;
+
+      if (changed) await user.save();
+    }
+
+    const token = signToken(user);
+    res.cookie("token", token, COOKIE_OPTIONS);
+
+    return res.json({
+      message: "Đăng nhập Google thành công",
+      user: toPublicUser(user)
+    });
+  } catch (err) {
+    console.error("Google login error:", err);
+    return res.status(401).json({ message: "Google credential không hợp lệ." });
   }
 });
 

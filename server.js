@@ -71,10 +71,12 @@ app.get("/admin", (req, res) => {
 const authRoutes = require("./routes/authRoutes");
 const newsRoutes = require("./routes/newsRoutes");
 const documentRoutes = require("./routes/documentRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/docs", documentRoutes);
+app.use("/api/chat", chatRoutes);
 const News = require("./models/News");
 
 // SITEMAP.XML

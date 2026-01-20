@@ -7,6 +7,15 @@ const userSchema = new mongoose.Schema(
     email: { type: String, unique: true, required: true, lowercase: true },
     passwordHash: { type: String, required: true },
 
+    // auth provider
+    // - local: email/password + OTP
+    // - google: Google Sign-In (ID token)
+    provider: { type: String, enum: ["local", "google"], default: "local" },
+
+    // Google ID token subject (sub). Unique per Google account.
+    // Note: sparse index so existing users without googleSub are fine.
+    googleSub: { type: String, index: true, sparse: true },
+
     // admin | user
     role: { type: String, enum: ["admin", "user"], default: "user" },
 
