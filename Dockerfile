@@ -12,7 +12,7 @@ WORKDIR /app
 
 # Install deps first (better build cache)
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev --no-audit --no-fund
 
 # App source
 COPY . .
